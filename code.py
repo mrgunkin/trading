@@ -3,7 +3,8 @@ import requests
 import time
 from datetime import datetime, timedelta
 import logging
-from colorama import init, Fore, Style  # Для цветного вывода в консоли
+from colorama import init, Fore, Style
+import matplotlib.pyplot as plt  # Для построения графиков
 
 # Инициализация цветного вывода
 init()
@@ -52,6 +53,34 @@ def calculate_liquidation_levels(price, level_10=0.10, level_25=0.25):
     lower_25 = price * (1 - level_25)
     return upper_10, lower_10, upper_25, lower_25
 
+# Function to plot price and liquidation levels
+def plot_price_and_levels(df, current_price, upper_10, lower_10, upper_25, lower_25):
+    plt.figure(figsize=(10, 6))
+    
+    # Plot historical prices
+    plt.plot(df['timestamp'], df['close'], label='Bitcoin Price', color='blue')
+    
+    # Plot current price
+    plt.axhline(y=current_price, color='black', linestyle='--', label=f'Current Price: ${current_price:.2f}')
+    
+    # Plot liquidation levels
+    plt.axhline(y=upper_10, color='red', linestyle='-.', label=f'+10%: ${upper_10:.2f}')
+    plt.axhline(y=lower_10, color='green', linestyle='-.', label=f'-10%: ${lower_10:.2f}')
+    plt.axhline(y=upper_25, color='darkred', linestyle=':', label=f'+25%: ${upper_25:.2f}')
+    plt.axhline(y=lower_25, color='darkgreen', linestyle=':', label=f'-25%: ${lower_25:.2f}')
+    
+    # Customize plot
+    plt.title('Bitcoin Price and Liquidation Levels')
+    plt.xlabel('Time')
+    plt.ylabel('Price (USD)')
+    plt.legend()
+    plt.grid(True)
+    
+    # Show plot (non-blocking)
+    plt.draw()
+    plt.pause(1)  # Пауза для обновления окна
+    plt.clf()     # Очистка графика для следующего цикла
+
 # Main trading bot logic
 def bitcoin_trading_bot(check_interval=300, proximity_threshold=0.01):
     print("Starting Bitcoin (BTC/USDT) trading bot...")
@@ -66,7 +95,7 @@ def bitcoin_trading_bot(check_interval=300, proximity_threshold=0.01):
                 time.sleep(check_interval)
                 continue
             
-            # Get historical data for levels
+            # Get historical data for levels and plotting
             df = get_historical_price_data()
             if df is None or len(df) < 13:
                 print("Not enough historical data. Skipping this cycle.")
@@ -105,6 +134,9 @@ def bitcoin_trading_bot(check_interval=300, proximity_threshold=0.01):
             else:
                 print("Price is in a safe zone. Waiting for movement.")
             
+            # Plot the graph
+            plot_price_and_levels(df, current_price, upper_10, lower_10, upper_25, lower_25)
+            
             # Wait for the next check
             time.sleep(check_interval)
             
@@ -114,5 +146,5 @@ def bitcoin_trading_bot(check_interval=300, proximity_threshold=0.01):
 
 # Start the bot
 if __name__ == "__main__":
-    # Install colorama if not already installed: pip install colorama
+    # Install required libraries if not already installed: pip install matplotlib colorama
     bitcoin_trading_bot(check_interval=300, proximity_threshold=0.015)  # 1.5% threshold
